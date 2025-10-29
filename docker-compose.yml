@@ -1,83 +1,6 @@
+version: "3.9"
+
 services:
-  backend:
-    profiles: ["prod"]
-    build:
-      context: ./server
-      target: production
-    container_name: quick-roll-call-backend
-    environment:
-      NODE_ENV: production
-      PORT: 5000
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    ports:
-      - "5000:5000"
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  frontend:
-    profiles: ["prod"]
-    build:
-      context: ./client
-      target: production
-    container_name: quick-roll-call-frontend
-    environment:
-      NODE_ENV: production
-      PORT: 80
-    ports:
-      - "80:80"
-    depends_on:
-      backend:
-        condition: service_started
-
-  backend-dev:
-    profiles: ["dev"]
-    build:
-      context: ./server
-      target: builder
-    container_name: quick-roll-call-backend-dev
-    command: npm run dev
-    environment:
-      NODE_ENV: development
-      PORT: 5000
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      CHOKIDAR_USEPOLLING: 1
-      CORS_ORIGIN: http://localhost:5173
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  frontend-dev:
-    profiles: ["dev"]
-    build:
-      context: ./client
-      target: builder
-    container_name: quick-roll-call-frontend-dev
-    command: npm run dev
-    environment:
-      NODE_ENV: development
-      BACKEND_URL: http://backend-dev:5000
-      VITE_HOST: 0.0.0.0
-      CHOKIDAR_USEPOLLING: 1
-      VITE_ENABLE_SERVER_LOGS: "1"
-      VITE_HTTP_TRACE: "0"
-      VITE_API_BASE_URL: "/api"
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    depends_on:
-      backend-dev:
-        condition: service_started
-
   redis:
     image: redis:7-alpine
     container_name: quick-roll-call-redis
@@ -89,6 +12,47 @@ services:
       timeout: 3s
       retries: 20
 
-volumes:
-  # Named volumes not required with this layout; using anonymous volumes for node_modules
-  # (kept block to avoid breaking setups expecting volumes section)
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: quick-roll-call-backend
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CORS_ORIGIN: http://localhost:5173
+      CHOKIDAR_USEPOLLING: 1
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: quick-roll-call-frontend
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      BACKEND_URL: http://backend:5000
+      VITE_HOST: 0.0.0.0
+      CHOKIDAR_USEPOLLING: 1
+      VITE_ENABLE_SERVER_LOGS: "1"
+      VITE_HTTP_TRACE: "0"
+      VITE_API_BASE_URL: "/api"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_started
