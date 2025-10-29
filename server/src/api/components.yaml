@@ -1,0 +1,289 @@
+components:
+  schemas:
+    AttendanceRecord:
+      type: object
+      required: [userId, name, surname, section, timestamp]
+      properties:
+        userId:
+          type: string
+          description: Unique participant identifier.
+          example: "245678"
+        name:
+          type: string
+          example: "Ada"
+        surname:
+          type: string
+          example: "Lovelace"
+        section:
+          type: string
+          description: Course or group section label.
+          example: "CS-101"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix epoch milliseconds when attendance was recorded.
+          example: 1714672800000
+    Session:
+      type: object
+      required: [id, isActive, createdAt, attendance]
+      properties:
+        id:
+          type: string
+          example: "a3b5c1d2-ef90-4abc-8123-99337711aa00"
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: integer
+          format: int64
+          example: 1714669200000
+        closedAt:
+          type: integer
+          format: int64
+          nullable: true
+          example: null
+        name:
+          type: string
+          nullable: true
+          example: "Week 5 Lecture"
+        durationMinutes:
+          type: integer
+          nullable: true
+          example: 45
+        attendance:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttendanceRecord'
+        endTime:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1714671900000
+    AttendanceSubmissionRequest:
+      type: object
+      required: [token, userId, name, surname, section]
+      properties:
+        token:
+          type: string
+          description: Single-use attendance token issued by the instructor.
+          example: "c807ee17-e2f7-45a4-bc0f-3c86c013e8d0"
+        userId:
+          type: string
+          description: Unique participant identifier (digits).
+          example: "245678"
+        name:
+          type: string
+          example: "Ada"
+        surname:
+          type: string
+          example: "Lovelace"
+        section:
+          type: string
+          example: "CS-101"
+    AttendanceSubmissionSuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          example: true
+    AttendanceSubmissionErrorResponse:
+      type: object
+      required: [success, reason, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        reason:
+          type: string
+          description: Attendance rejection reason.
+          enum: [SESSION_NOT_FOUND, SESSION_CLOSED, TOKEN_INVALID, DUPLICATE_ATTENDANCE, DUPLICATE_DEVICE_SUBMISSION]
+          example: SESSION_CLOSED
+        message:
+          type: string
+          example: "Session is closed"
+    TokenValidationSuccessResponse:
+      type: object
+      required: [ok, sessionId]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        sessionId:
+          type: string
+          example: "a3b5c1d2-ef90-4abc-8123-99337711aa00"
+        sessionName:
+          type: string
+          nullable: true
+          example: "Week 5 Lecture"
+    TokenValidationErrorResponse:
+      type: object
+      required: [ok, reason, message]
+      properties:
+        ok:
+          type: boolean
+          example: false
+        reason:
+          type: string
+          enum: [SESSION_NOT_FOUND, SESSION_CLOSED, TOKEN_INVALID]
+          example: SESSION_NOT_FOUND
+        message:
+          type: string
+          example: "Session not found"
+    MintTokenSuccessResponse:
+      type: object
+      required: [success, token, attendUrl]
+      properties:
+        success:
+          type: boolean
+          example: true
+        token:
+          type: string
+          example: "9f4a8acb-3d13-4dbd-9155-0f558a4f0a08"
+        attendUrl:
+          type: string
+          format: uri
+          example: "https://quickrollcall.app/attend/a3b5c1d2-ef90-4abc-8123-99337711aa00?token=9f4a8acb-3d13-4dbd-9155-0f558a4f0a08"
+    GenericErrorResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Session not found"
+    SessionCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Optional name/title for the session.
+          example: "Week 5 Lecture"
+        durationMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Optional duration in minutes; session auto-closes after this time.
+          example: 15
+    SessionCreateResponse:
+      type: object
+      required: [sessionId, isActive, instructorUrl, attendUrl, token, ownerToken]
+      properties:
+        sessionId:
+          type: string
+          example: "a3b5c1d2-ef90-4abc-8123-99337711aa00"
+        isActive:
+          type: boolean
+          example: true
+        instructorUrl:
+          type: string
+          format: uri
+          example: "https://quickrollcall.app/session/a3b5c1d2-ef90-4abc-8123-99337711aa00"
+        attendUrl:
+          type: string
+          format: uri
+          example: "https://quickrollcall.app/attend/a3b5c1d2-ef90-4abc-8123-99337711aa00?token=9f4a8acb-3d13-4dbd-9155-0f558a4f0a08"
+        name:
+          type: string
+          nullable: true
+          example: "Week 5 Lecture"
+        durationMinutes:
+          type: integer
+          nullable: true
+          example: 15
+        token:
+          type: string
+          description: Single-use token preissued for the session.
+          example: "9f4a8acb-3d13-4dbd-9155-0f558a4f0a08"
+        ownerToken:
+          type: string
+          description: Secret token to authenticate instructor operations.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    SessionDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/Session'
+        - type: object
+          properties:
+            tokensCount:
+              type: integer
+              description: Number of unused attendance tokens still available.
+              example: 5
+    SessionCloseResponse:
+      type: object
+      required: [success, session]
+      properties:
+        success:
+          type: boolean
+          example: true
+        session:
+          $ref: '#/components/schemas/Session'
+    SessionTokenResponse:
+      type: object
+      required: [success, token, attendUrl]
+      properties:
+        success:
+          type: boolean
+          example: true
+        token:
+          type: string
+          example: "0f558a4f-0a08-4dbd-9155-9f4a8acb3d13"
+        attendUrl:
+          type: string
+          format: uri
+          example: "https://quickrollcall.app/attend/a3b5c1d2-ef90-4abc-8123-99337711aa00?token=0f558a4f-0a08-4dbd-9155-9f4a8acb3d13"
+    ExportPreviewResponse:
+      type: object
+      required: [success, session]
+      properties:
+        success:
+          type: boolean
+          example: true
+        session:
+          $ref: '#/components/schemas/Session'
+    RedisStatusResponse:
+      type: object
+      required: [active, endpoint]
+      properties:
+        active:
+          type: boolean
+          example: true
+        endpoint:
+          type: string
+          example: "redis://localhost:6379"
+        error:
+          type: string
+          nullable: true
+          example: null
+    ClientLogRequest:
+      type: object
+      required: [level, message]
+      properties:
+        level:
+          type: string
+          enum: [debug, info, warn, error]
+          example: warn
+        message:
+          type: string
+          example: "Camera permission denied"
+        meta:
+          type: object
+          additionalProperties: true
+          example:
+            device: "Pixel 7"
+            browser: "Chrome"
+    ClientLogResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          example: true
+    IdentityResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          example: "f7ac82f9-51f4-4a31-8d40-88c38df5f0a0"
