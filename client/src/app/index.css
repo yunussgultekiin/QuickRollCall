@@ -1,0 +1,19 @@
+/* Global minimal CSS to complement MUI and fix default margins */
+html, body, #root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* Media elements scale nicely */
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+/* Keyboard focus visibility for a11y */
+:focus-visible {
+  outline: 2px solid #8ea0ff;
+  outline-offset: 2px;
+}
