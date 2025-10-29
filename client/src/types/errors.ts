@@ -1,0 +1,15 @@
+export const ErrorReasons = {
+  TOKEN_MISSING: "TOKEN_MISSING",
+  SESSION_NOT_FOUND: "SESSION_NOT_FOUND",
+  TOKEN_INVALID: "TOKEN_INVALID",
+  NETWORK_ERROR: "NETWORK_ERROR",
+  DUPLICATE_TOKEN: "DUPLICATE_TOKEN",
+  DUPLICATE_ATTENDANCE: "DUPLICATE_ATTENDANCE",
+  DUPLICATE_DEVICE_SUBMISSION: "DUPLICATE_DEVICE_SUBMISSION",
+  SESSION_CLOSED: "SESSION_CLOSED",
+  RATE_LIMIT: "RATE_LIMIT",
+} as const;
+
+export type ErrorReason = typeof ErrorReasons[keyof typeof ErrorReasons];
+
+export type ValidatedError = { reason: ErrorReason; message: string };
