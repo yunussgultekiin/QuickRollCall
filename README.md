@@ -1,6 +1,6 @@
 # Quick Roll Call
 
-A full-stack attendance collection tool that lets instructors spin up short-lived roll call sessions, generate QR codes for attendees, and export results as a PDF. The project is optimised for local-first development: the frontend (React + Vite) and backend (Express + TypeScript) run as separate containers with Redis providing shared state. Subsequent deployment work will live on a dedicated Heroku branch, keeping `main` focused on local workflows.
+A full-stack attendance collection tool that lets instructors spin up short-lived roll call sessions, generate QR codes for attendees, and export results as a PDF. The project is optimised for local-first development: the frontend (React + Vite) and backend (Express + TypeScript) run as separate dev containers with Redis providing shared state. Subsequent deployment work will live on a dedicated Heroku branch, keeping `main` focused on local workflows.
 
 ## Table of Contents
 - [Features](#features)
@@ -11,8 +11,7 @@ A full-stack attendance collection tool that lets instructors spin up short-live
 - [API Overview](#api-overview)
 - [Frontend Highlights](#frontend-highlights)
 - [Logging & Monitoring](#logging--monitoring)
-- [Testing](#testing)
-- [Deployment Plan](#deployment-plan)
+- [Testing & Deployment](#testing--deployment)
 - [Project Structure](#project-structure)
 
 ## Features
@@ -30,20 +29,20 @@ A full-stack attendance collection tool that lets instructors spin up short-live
 │   Frontend   │ <--> │   Backend    │ <--> │    Redis     │
 │ React + Vite │      │ Express API  │      │ Session TTL │
 └──────────────┘      └──────────────┘      └─────────────┘
-        ▲                      │                    │
-        │                      ▼                    │
+     ▲                      │                    │
+     │                      ▼                    │
   Browser QR flow       PDF exports, token logic    │
-        │                      │                    │
-        └────────────── Logs & health checks ◀──────┘
+     │                      │                    │
+     └────────────── Logs & health checks ◀──────┘
 ```
-- **Frontend** runs on Vite dev server (port 5173) in development or Nginx (port 80) inside the production container.
+- **Frontend** runs on the Vite dev server (port 5173) inside a container.
 - **Backend** exposes REST endpoints on port 5000, handles validation via Zod, and generates PDF exports with PDFKit.
 - **Redis** persists active sessions, issued tokens, and submission fingerprints.
 
 ## Tech Stack
 - **Frontend:** React 19, Vite, TypeScript, MUI, Redux Toolkit, Tailwind (utility styles), notistack, react-hook-form.
 - **Backend:** Node 20, Express 5, TypeScript, Zod, Winston, PDFKit, QRCode, Redis client.
-- **Infrastructure:** Docker Compose (profiles for dev/prod), Redis 7 (alpine), Nginx (alpine).
+- **Infrastructure:** Docker Compose (dev profile), Redis 7 (alpine).
 
 ## Local Development
 ### Prerequisites
@@ -53,15 +52,11 @@ A full-stack attendance collection tool that lets instructors spin up short-live
 
 ### Using Docker Compose (recommended)
 ```powershell
-# Development profile with hot reload
-docker compose --profile dev up --build
-
-# Production-like build (static frontend served by nginx)
-docker compose --profile prod up --build
+docker compose up --build
 ```
-Running the dev profile starts three containers:
-- `frontend-dev`: Vite server on `http://localhost:5173` proxying `/api` to the backend.
-- `backend-dev`: Express API with live reload on `http://localhost:5000`.
+This boots three containers:
+- `frontend`: Vite server on `http://localhost:5173` proxying `/api` to the backend.
+- `backend`: Express API with live reload on `http://localhost:5000`.
 - `redis`: Redis instance exposed on port `6379` for debugging tools.
 
 ### Running without Docker
@@ -138,21 +133,8 @@ The REST API is rooted at `/api`. Swagger metadata is registered automatically a
 - **Backend** – Winston logger writes structured events to stdout; request logging middleware attaches timing and error metadata. Redis connection events surface in logs during shutdown.
 - **Frontend** – A lightweight logger mirrors messages in the console and batches important events to `/api/logs` when enabled.
 
-## Testing
-Automated tests are not yet configured. Manual verification paths:
-- Create a new session, scan the QR code with a second device, and submit attendance.
-- Validate duplicate protection by resubmitting with the same token or student ID.
-- Export the session PDF and confirm attendee ordering and timestamps.
-
-Future work: add unit coverage for session services, end-to-end smoke tests via Playwright, and contract tests for the Express routes.
-
-## Deployment Plan
-- `main` remains the local-first branch with Docker-based workflows.
-- A dedicated branch (for example `deploy/heroku`) will be created when preparing the Heroku deployment. That branch can:
-  1. Introduce Heroku-specific configuration (Procfile, release scripts, managed Redis add-on settings).
-  2. Adjust environment defaults for the hosted environment (e.g., disable wildcard CORS, configure `FRONTEND_BASE_URL`).
-  3. Bake production Docker images or switch to buildpacks as required by Heroku.
-- The README will be updated on that branch with deployment runbooks while keeping `main` focused on local development.
+## Testing & Deployment
+I plan to add automated linting (ESLint + Prettier), Jest test coverage, GitHub Actions CI/CD, and a Heroku deployment branch once the local workflow is fully stabilised.
 
 ## Project Structure
 ```
@@ -165,7 +147,7 @@ QuickRollCall/
 │   │   ├── services/       # API client, logging, config helpers
 │   │   ├── store/          # Redux slices and hooks
 │   │   └── validation/     # Zod schemas shared in the UI
-│   └── Dockerfile          # Multi-stage build (builder + nginx)
+│   └── Dockerfile          # Dev-focused container (Vite + dependencies)
 ├── server/                 # Express + TypeScript backend
 │   ├── src/
 │   │   ├── api/            # App bootstrap, config, Swagger, server entry
@@ -175,7 +157,7 @@ QuickRollCall/
 │   │   ├── services/       # PDF generation, QR utilities, token generator
 │   │   └── validation/     # Zod schemas for request contracts
 │   └── Dockerfile          # Multi-stage build (builder + runtime)
-├── docker-compose.yml      # Profiles for dev/prod stacks
+├── docker-compose.yml      # Dev stack (frontend, backend, redis)
 └── README.md               # Project documentation (this file)
 ```
 
